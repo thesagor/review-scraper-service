@@ -29,7 +29,7 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "openai": "^4.20.1",
-    "puppeteer": "^21.6.1"
+    "puppeteer": "^24.31.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

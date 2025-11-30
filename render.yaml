@@ -1,8 +1,10 @@
 services:
   - type: web
     name: review-scraper-service
-    env: docker
+    env: node
     plan: free
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,3 +14,5 @@ services:
         value: social-review-scraper-secret-2024-xyz789
       - key: GEMINI_API_KEY
         sync: false
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/src/.cache/puppeteer
