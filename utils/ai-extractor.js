@@ -23,7 +23,57 @@ async function extractReviewsFromHTML(html, platform, maxReviews = 50) {
     ? html.substring(0, maxHtmlLength) + '...[truncated]'
     : html;
 
-  // 1. Try Google Gemini (Free & Fast!)
+  // 1. Try OpenAI (Primary)
+  if (openai) {
+    try {
+      console.log('[AI] Using OpenAI GPT-4o-mini...');
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a data extraction expert. Extract customer reviews from the provided HTML.
+            Return ONLY a valid JSON array of objects with this exact structure:
+            [
+              {
+                "author_name": "Reviewer Name",
+                "rating": 5,
+                "text": "Review text content",
+                "date": "2024-01-15",
+                "platform": "${platform}"
+              }
+            ]
+            Rules:
+            1. Extract up to ${maxReviews} reviews
+            2. Rating must be a number (1-5)
+            3. Date should be in YYYY-MM-DD format (estimate if needed)
+            4. Remove HTML tags from text`
+          },
+          {
+            role: "user",
+            content: truncatedHtml
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+      });
+
+      const content = completion.choices[0].message.content;
+      // Handle case where OpenAI returns an object with a key like "reviews": [...] instead of just the array
+      const parsed = JSON.parse(content);
+      const reviews = Array.isArray(parsed) ? parsed : (parsed.reviews || parsed.data || []);
+      
+      return validateReviews(reviews, platform, maxReviews);
+
+    } catch (error) {
+      console.error('[OpenAI] Extraction failed:', error);
+      // Fallback to Gemini if OpenAI fails
+      console.log('[AI] Falling back to Gemini...');
+    }
+  }
+
+  // 2. Try Google Gemini (Fallback)
   if (genAI) {
     try {
       console.log('[AI] Using Google Gemini 2.0 Flash...');
@@ -67,12 +117,11 @@ async function extractReviewsFromHTML(html, platform, maxReviews = 50) {
 
     } catch (error) {
       console.error('[Gemini] Extraction failed:', error);
-      // Throw the error directly so we can see it in the response
       throw new Error(`Gemini extraction failed: ${error.message}`);
     }
   }
 
-  throw new Error('No valid API keys found! Please set GEMINI_API_KEY in .env file.');
+  throw new Error('No valid API keys found! Please set OPENAI_API_KEY or GEMINI_API_KEY in .env file.');
 }
 
 /**
