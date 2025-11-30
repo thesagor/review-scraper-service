@@ -42,9 +42,18 @@ DO YOU SEE "API_SECRET_KEY" in the list?
 │  3. In "Value" field, enter:                                  │
 │     social-review-scraper-secret-2024-xyz789                  │
 │  4. Click "Save"                                               │
-│  5. Go to STEP 4                                               │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
+
+───────────────────────────────────────────────────────────────────
+STEP 3.5: Add GEMINI_API_KEY (CRITICAL!)
+───────────────────────────────────────────────────────────────────
+You also need the AI key for scraping to work:
+
+1. Click "Add Environment Variable" again
+2. Key: GEMINI_API_KEY
+3. Value: AIzaSyA5CwkEGOVP2svLgvOmp_9u68uANC43Ubo
+4. Click "Save Changes"
 
 ───────────────────────────────────────────────────────────────────
 STEP 4: Wait for Automatic Redeployment
