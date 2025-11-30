@@ -9,6 +9,6 @@ services:
       - key: PORT
         value: 10000
       - key: API_SECRET_KEY
-        generateValue: true
-      - key: OPENAI_API_KEY
+        value: social-review-scraper-secret-2024-xyz789
+      - key: GEMINI_API_KEY
         sync: false
