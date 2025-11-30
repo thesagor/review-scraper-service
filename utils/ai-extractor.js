@@ -23,7 +23,55 @@ async function extractReviewsFromHTML(html, platform, maxReviews = 50) {
     ? html.substring(0, maxHtmlLength) + '...[truncated]'
     : html;
 
-  // 1. Try OpenAI (Primary)
+  // 1. Try Google Gemini (Primary - Free & Fast!)
+  if (genAI) {
+    try {
+      console.log('[AI] Using Google Gemini 2.0 Flash...');
+      // Use the model we saw in diagnostics
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const prompt = `
+        You are a data extraction expert. Extract customer reviews from the provided HTML.
+        
+        Return ONLY a valid JSON array of objects with this exact structure:
+        [
+          {
+            "author_name": "Reviewer Name",
+            "rating": 5,
+            "text": "Review text content",
+            "date": "2024-01-15",
+            "platform": "${platform}"
+          }
+        ]
+
+        Rules:
+        1. Extract up to ${maxReviews} reviews
+        2. Rating must be a number (1-5)
+        3. Date should be in YYYY-MM-DD format (estimate if needed)
+        4. Remove HTML tags from text
+        5. Return ONLY the JSON array, no markdown formatting, no code blocks.
+        
+        HTML Content:
+        ${truncatedHtml}
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text();
+      
+      // Clean up markdown code blocks if present
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      const reviews = JSON.parse(text);
+      return validateReviews(reviews, platform, maxReviews);
+
+    } catch (error) {
+      console.error('[Gemini] Extraction failed:', error);
+      console.log('[AI] Falling back to OpenAI...');
+    }
+  }
+
+  // 2. Try OpenAI (Fallback)
   if (openai) {
     try {
       console.log('[AI] Using OpenAI GPT-4o-mini...');
@@ -68,60 +116,11 @@ async function extractReviewsFromHTML(html, platform, maxReviews = 50) {
 
     } catch (error) {
       console.error('[OpenAI] Extraction failed:', error);
-      // Fallback to Gemini if OpenAI fails
-      console.log('[AI] Falling back to Gemini...');
+      throw new Error(`OpenAI extraction failed: ${error.message}`);
     }
   }
 
-  // 2. Try Google Gemini (Fallback)
-  if (genAI) {
-    try {
-      console.log('[AI] Using Google Gemini 2.0 Flash...');
-      // Use the model we saw in diagnostics
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-      const prompt = `
-        You are a data extraction expert. Extract customer reviews from the provided HTML.
-        
-        Return ONLY a valid JSON array of objects with this exact structure:
-        [
-          {
-            "author_name": "Reviewer Name",
-            "rating": 5,
-            "text": "Review text content",
-            "date": "2024-01-15",
-            "platform": "${platform}"
-          }
-        ]
-
-        Rules:
-        1. Extract up to ${maxReviews} reviews
-        2. Rating must be a number (1-5)
-        3. Date should be in YYYY-MM-DD format (estimate if needed)
-        4. Remove HTML tags from text
-        5. Return ONLY the JSON array, no markdown formatting, no code blocks.
-        
-        HTML Content:
-        ${truncatedHtml}
-      `;
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-      
-      // Clean up markdown code blocks if present
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      const reviews = JSON.parse(text);
-      return validateReviews(reviews, platform, maxReviews);
-
-    } catch (error) {
-      console.error('[Gemini] Extraction failed:', error);
-      throw new Error(`Gemini extraction failed: ${error.message}`);
-    }
-  }
-
-  throw new Error('No valid API keys found! Please set OPENAI_API_KEY or GEMINI_API_KEY in .env file.');
+  throw new Error('No valid API keys found! Please set GEMINI_API_KEY or OPENAI_API_KEY in .env file.');
 }
 
 /**
