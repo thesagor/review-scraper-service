@@ -28,14 +28,9 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 10000
 
-# Define environment variable for Puppeteer to skip downloading Chromium
-# (since we installed google-chrome-stable)
-# ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-#     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
-
-# Actually, keeping the bundled chromium is often safer unless we want to manage versions strictly.
-# But the apt-get install ensures the SHARED LIBS are there.
-# Let's stick to standard puppeteer behavior but ensure libs are present.
+# Define environment variable for Puppeteer to use system Chrome
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 # Start the application
 CMD [ "node", "server.js" ]
