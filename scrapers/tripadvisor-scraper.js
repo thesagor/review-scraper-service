@@ -29,21 +29,31 @@ async function scrape(hotelUrl, maxReviews = 50) {
     
     await page.setViewport({ width: 1920, height: 1080 });
     
+    // Enable request interception to block images and fonts for speed
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     console.log('[TripAdvisor] Navigating to:', hotelUrl);
     await page.goto(hotelUrl, { 
-      waitUntil: 'networkidle2',
-      timeout: parseInt(process.env.TIMEOUT_MS) || 30000
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
     });
     
     // Wait for page to load
-    await page.waitForTimeout(3000);
+    await new Promise(r => setTimeout(r, 3000));
     
     // Handle cookie consent if it appears
     try {
       const acceptButton = await page.$('button[id*="accept"]');
       if (acceptButton) {
         await acceptButton.click();
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
       }
     } catch (e) {
       console.log('[TripAdvisor] No cookie consent found');
@@ -54,7 +64,7 @@ async function scrape(hotelUrl, maxReviews = 50) {
       const reviewsButton = await page.$('a[href*="Reviews"]');
       if (reviewsButton) {
         await reviewsButton.click();
-        await page.waitForTimeout(2000);
+        await new Promise(r => setTimeout(r, 2000));
       }
     } catch (e) {
       console.log('[TripAdvisor] Already on reviews page');
@@ -70,7 +80,7 @@ async function scrape(hotelUrl, maxReviews = 50) {
         const readMoreButtons = document.querySelectorAll('span[class*="readMore"], div[class*="readMore"]');
         readMoreButtons.forEach(button => button.click());
       });
-      await page.waitForTimeout(1000);
+      await new Promise(r => setTimeout(r, 1000));
     } catch (e) {
       console.log('[TripAdvisor] Could not expand reviews');
     }

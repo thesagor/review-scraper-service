@@ -29,21 +29,31 @@ async function scrape(listingUrl, maxReviews = 50) {
     
     await page.setViewport({ width: 1920, height: 1080 });
     
+    // Enable request interception to block images and fonts for speed
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     console.log('[Airbnb] Navigating to:', listingUrl);
     await page.goto(listingUrl, { 
-      waitUntil: 'networkidle2',
-      timeout: parseInt(process.env.TIMEOUT_MS) || 30000
+      waitUntil: 'domcontentloaded', // Faster than networkidle2
+      timeout: 60000 // Increased to 60 seconds
     });
     
     // Wait for page to load
-    await page.waitForTimeout(4000);
+    await new Promise(r => setTimeout(r, 4000));
     
     // Handle cookie consent
     try {
       const acceptButton = await page.$('button[data-testid*="accept"]');
       if (acceptButton) {
         await acceptButton.click();
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
       }
     } catch (e) {
       console.log('[Airbnb] No cookie consent found');
@@ -60,7 +70,7 @@ async function scrape(listingUrl, maxReviews = 50) {
           reviewsSection.scrollIntoView({ behavior: 'smooth' });
         }
       });
-      await page.waitForTimeout(2000);
+      await new Promise(r => setTimeout(r, 2000));
     } catch (e) {
       console.log('[Airbnb] Could not find reviews section');
     }
@@ -71,7 +81,7 @@ async function scrape(listingUrl, maxReviews = 50) {
       if (showAllButton) {
         console.log('[Airbnb] Clicking show all reviews...');
         await showAllButton.click();
-        await page.waitForTimeout(3000);
+        await new Promise(r => setTimeout(r, 3000));
       }
     } catch (e) {
       console.log('[Airbnb] Show all button not found');
@@ -91,7 +101,7 @@ async function scrape(listingUrl, maxReviews = 50) {
           } catch (e) {}
         });
       });
-      await page.waitForTimeout(1000);
+      await new Promise(r => setTimeout(r, 1000));
     } catch (e) {
       console.log('[Airbnb] Could not expand reviews');
     }

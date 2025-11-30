@@ -30,21 +30,31 @@ async function scrape(placeUrl, maxReviews = 50) {
     // Set viewport
     await page.setViewport({ width: 1920, height: 1080 });
     
+    // Enable request interception to block images and fonts for speed
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     console.log('[Google] Navigating to:', placeUrl);
     await page.goto(placeUrl, { 
-      waitUntil: 'networkidle2',
-      timeout: parseInt(process.env.TIMEOUT_MS) || 30000
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
     });
     
     // Wait for reviews to load
-    await page.waitForTimeout(3000);
+    await new Promise(r => setTimeout(r, 3000));
     
     // Click on "Reviews" tab if it exists
     try {
       const reviewsButton = await page.$('button[aria-label*="Reviews"]');
       if (reviewsButton) {
         await reviewsButton.click();
-        await page.waitForTimeout(2000);
+        await new Promise(r => setTimeout(r, 2000));
       }
     } catch (e) {
       console.log('[Google] Reviews tab not found, continuing...');
